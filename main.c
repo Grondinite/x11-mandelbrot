@@ -10,6 +10,13 @@
 #define GRID_HEIGHT 1000
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
 
+#define MANDEL_SCALING_X 2.5f
+#define MANDEL_SCALING_X_OFFSET 1.5f
+#define MANDEL_SCALING_Y 2.0f
+#define MANDEL_SCALING_Y_OFFSET 1.0f
+#define MANDEL_MAX_DEPTH 50
+#define MANDEL_DIMENSIONS 2
+
 typedef uint32_t RGBA32;
 RGBA32 * grid_px;
 
@@ -30,15 +37,15 @@ void render_mandelbrot() {
     for (int y_pixel = 0; y_pixel < GRID_HEIGHT; y_pixel++){
         for (int x_pixel = 0; x_pixel < GRID_WIDTH; x_pixel++) {
 
-            double scaled_x = (double)2.5/GRID_WIDTH * x_pixel - 1.5;
-            double scaled_y = (double)2/GRID_HEIGHT * y_pixel - 1;
+            double scaled_x = (double)MANDEL_SCALING_X/GRID_WIDTH * x_pixel - MANDEL_SCALING_X_OFFSET;
+            double scaled_y = (double)MANDEL_SCALING_Y/GRID_HEIGHT * y_pixel - MANDEL_SCALING_Y_OFFSET;
 
             double complex c = scaled_x + (scaled_y*I);
             double complex z = 0;
             int i = 0;
-            int max_iter = 50;
+            int max_iter = MANDEL_MAX_DEPTH;
             while (i < max_iter) {
-                z = cpow(z, 2) + c;
+                z = cpow(z, MANDEL_DIMENSIONS) + c;
                 i++;
 
                 if (isinf(creal(z))) break;
