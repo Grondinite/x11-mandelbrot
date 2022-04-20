@@ -20,7 +20,7 @@
 #define MANDEL_SCALING_X_OFFSET 2.3f
 #define MANDEL_SCALING_Y 2.0f
 #define MANDEL_SCALING_Y_OFFSET 1.0f
-#define MANDEL_MAX_DEPTH 75
+#define MANDEL_MAX_DEPTH 25
 #define MANDEL_DIMENSIONS 2
 #define MANDEL_UNZOOM 1.0f
 
@@ -28,83 +28,13 @@
 
 typedef uint32_t RGBA32;
 
-void initialize_memory(RGBA32 ** element, unsigned int size) {
-    size_t grid_px_size_bytes = size * sizeof(RGBA32);
-    *element = malloc(grid_px_size_bytes);
-    for (int i = 0; i < size; i++){
-        (*element)[i] = 0;
-    }
-}
-
- RGBA32 make_rgba32(float r, float g, float b)
-{
-    return (((uint32_t) (b * 255.0)) << 16) |
-           (((uint32_t) (g * 255.0)) << 8) |
-           (uint32_t) (r * 255.0) |
-           0xFF000000;
-}
-
-
-void insert_grid(RGBA32 ** grid, int x, int y, int i, int max_iter) {
-    double scaled_color = ((double)i/(double)max_iter);
-
-    if (i == max_iter) {
-        (*grid)[y * GRID_WIDTH + x] = 0;
-        return;
-    }
-
-    float normalized_color = (float)scaled_color;
-
-    float other = 0;
-    if (normalized_color-0.25f > 0) {
-        other = normalized_color - 0.25f;
-    }
-
-    (*grid)[y * GRID_WIDTH + x] = make_rgba32(normalized_color, other, other);
-}
-
-void draw_pixel(RGBA32 ** grid_px, int x, int y, RGBA32 pixel) {
-    (*grid_px)[y * PIX_BUF_WIDTH + x] = pixel;
-}
-
-void generate_mandelbrot(RGBA32 ** grid) {
-    for (int y_pixel = 0; y_pixel < GRID_HEIGHT; y_pixel++){
-        for (int x_pixel = 0; x_pixel < GRID_WIDTH; x_pixel++) {
-
-            double scaled_x = ((double)MANDEL_SCALING_X / GRID_WIDTH * x_pixel - MANDEL_SCALING_X_OFFSET) * MANDEL_UNZOOM;
-            double scaled_y = ((double)MANDEL_SCALING_Y / GRID_HEIGHT * y_pixel - MANDEL_SCALING_Y_OFFSET) * MANDEL_UNZOOM;
-
-            double complex c = scaled_x + (scaled_y*I);
-            double complex z = 0;
-            int i = 0;
-            int max_iter = MANDEL_MAX_DEPTH;
-            while (i < max_iter) {
-                z = cpow(z, MANDEL_DIMENSIONS) + c;
-                i++;
-
-                if (isinf(creal(z))) break;
-            }
-
-            insert_grid(grid, x_pixel, y_pixel, i, max_iter);
-        }
-    }
-}
-
-RGBA32 get_pix_from_grid(RGBA32 ** grid, int x, int y) {
-    return (*grid)[y * GRID_WIDTH + x];
-}
-
-void render_mandelbrot(RGBA32 ** grid_px, RGBA32 ** grid, int move_x, int move_y) {
-    for (int y_pixel = 0; y_pixel < PIX_BUF_HEIGHT; y_pixel++) {
-        for (int x_pixel = 0; x_pixel < PIX_BUF_WIDTH; x_pixel++) {
-            int relative_pixel_x = x_pixel + move_x;
-            int relative_pixel_y = y_pixel + move_y;
-            if (relative_pixel_x < GRID_WIDTH  && relative_pixel_y < GRID_HEIGHT) {
-                draw_pixel(grid_px, x_pixel, y_pixel, get_pix_from_grid(grid, relative_pixel_x, relative_pixel_y));
-            }
-        }
-    }
-}
+void initialize_memory(RGBA32 ** element, unsigned int size);
+RGBA32 make_rgba32(float r, float g, float b);
+void insert_grid(RGBA32 ** grid, int x, int y, int i, int max_iter);
+void draw_pixel(RGBA32 ** grid_px, int x, int y, RGBA32 pixel);
+void generate_mandelbrot(RGBA32 ** grid);
+RGBA32 get_pix_from_grid(RGBA32 ** grid, int x, int y);
+void render_mandelbrot(RGBA32 ** grid_px, RGBA32 ** grid, int move_x, int move_y);
 
 int main() {
 
@@ -205,4 +135,81 @@ int main() {
     free(grid);
     free(grid_px);
     return 0;
+}
+
+void initialize_memory(RGBA32 ** element, unsigned int size) {
+    size_t grid_px_size_bytes = size * sizeof(RGBA32);
+    *element = malloc(grid_px_size_bytes);
+    for (int i = 0; i < size; i++){
+        (*element)[i] = 0;
+    }
+}
+
+RGBA32 make_rgba32(float r, float g, float b)
+{
+    return (((uint32_t) (b * 255.0)) << 16) |
+           (((uint32_t) (g * 255.0)) << 8) |
+           (uint32_t) (r * 255.0) |
+           0xFF000000;
+}
+
+void insert_grid(RGBA32 ** grid, int x, int y, int i, int max_iter) {
+    double scaled_color = ((double)i/(double)max_iter);
+
+    if (i == max_iter) {
+        (*grid)[y * GRID_WIDTH + x] = 0;
+        return;
+    }
+
+    float normalized_color = (float)scaled_color;
+
+    float other = 0;
+    if (normalized_color-0.25f > 0) {
+        other = normalized_color - 0.25f;
+    }
+
+    (*grid)[y * GRID_WIDTH + x] = make_rgba32(normalized_color, other, other);
+}
+
+void draw_pixel(RGBA32 ** grid_px, int x, int y, RGBA32 pixel) {
+    (*grid_px)[y * PIX_BUF_WIDTH + x] = pixel;
+}
+
+void generate_mandelbrot(RGBA32 ** grid) {
+    for (int y_pixel = 0; y_pixel < GRID_HEIGHT; y_pixel++){
+        for (int x_pixel = 0; x_pixel < GRID_WIDTH; x_pixel++) {
+
+            double scaled_x = ((double)MANDEL_SCALING_X / GRID_WIDTH * x_pixel - MANDEL_SCALING_X_OFFSET) * MANDEL_UNZOOM;
+            double scaled_y = ((double)MANDEL_SCALING_Y / GRID_HEIGHT * y_pixel - MANDEL_SCALING_Y_OFFSET) * MANDEL_UNZOOM;
+
+            double complex c = scaled_x + (scaled_y*I);
+            double complex z = 0;
+            int i = 0;
+            int max_iter = MANDEL_MAX_DEPTH;
+            while (i < max_iter) {
+                z = cpow(z, MANDEL_DIMENSIONS) + c;
+                i++;
+
+                if (isinf(creal(z))) break;
+            }
+
+            insert_grid(grid, x_pixel, y_pixel, i, max_iter);
+        }
+    }
+}
+
+RGBA32 get_pix_from_grid(RGBA32 ** grid, int x, int y) {
+    return (*grid)[y * GRID_WIDTH + x];
+}
+
+void render_mandelbrot(RGBA32 ** grid_px, RGBA32 ** grid, int move_x, int move_y) {
+    for (int y_pixel = 0; y_pixel < PIX_BUF_HEIGHT; y_pixel++) {
+        for (int x_pixel = 0; x_pixel < PIX_BUF_WIDTH; x_pixel++) {
+            int relative_pixel_x = x_pixel + move_x;
+            int relative_pixel_y = y_pixel + move_y;
+            if (relative_pixel_x < GRID_WIDTH  && relative_pixel_y < GRID_HEIGHT) {
+                draw_pixel(grid_px, x_pixel, y_pixel, get_pix_from_grid(grid, relative_pixel_x, relative_pixel_y));
+            }
+        }
+    }
 }
