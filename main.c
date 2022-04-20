@@ -6,16 +6,18 @@
 #include <math.h>
 #include <complex.h>
 
-#define GRID_WIDTH 1000
+#define GRID_WIDTH 1900
 #define GRID_HEIGHT 1000
 #define GRID_SIZE GRID_HEIGHT * GRID_WIDTH
 
-#define MANDEL_SCALING_X 2.5f
-#define MANDEL_SCALING_X_OFFSET 1.5f
+#define MANDEL_SCALING_X 4.0f
+#define MANDEL_SCALING_X_OFFSET 2.3f
 #define MANDEL_SCALING_Y 2.0f
 #define MANDEL_SCALING_Y_OFFSET 1.0f
-#define MANDEL_MAX_DEPTH 50
+#define MANDEL_MAX_DEPTH 75
 #define MANDEL_DIMENSIONS 2
+
+#define MANDEL_UNZOOM 1.25f
 
 typedef uint32_t RGBA32;
 RGBA32 * grid_px;
@@ -28,17 +30,40 @@ void initialize_grid(){
     }
 }
 
+
+ RGBA32 make_rgba32(float r, float g, float b)
+{
+    return (((uint32_t) (b * 255.0)) << 16) |
+           (((uint32_t) (g * 255.0)) << 8) |
+           (uint32_t) (r * 255.0) |
+           0xFF000000;
+}
+
+
 void draw_pixel(int x, int y, int i, int max_iter) {
-    double scaled_color = (double)i/(double)max_iter*0xFFFFFFFF;
-    grid_px[y*GRID_HEIGHT + x] = 0xFFFFFFFF - (RGBA32)scaled_color;
+    double scaled_color = ((double)i/(double)max_iter);
+
+    if (i == max_iter) {
+        grid_px[y*GRID_WIDTH + x] = 0;
+        return;
+    }
+
+    float normalized_color = (float)scaled_color;
+
+    float other = 0;
+    if (normalized_color-0.25f > 0) {
+        other = normalized_color - 0.25f;
+    }
+
+    grid_px[y*GRID_WIDTH + x] = make_rgba32(normalized_color, other, other);
 }
 
 void render_mandelbrot() {
     for (int y_pixel = 0; y_pixel < GRID_HEIGHT; y_pixel++){
         for (int x_pixel = 0; x_pixel < GRID_WIDTH; x_pixel++) {
 
-            double scaled_x = (double)MANDEL_SCALING_X/GRID_WIDTH * x_pixel - MANDEL_SCALING_X_OFFSET;
-            double scaled_y = (double)MANDEL_SCALING_Y/GRID_HEIGHT * y_pixel - MANDEL_SCALING_Y_OFFSET;
+            double scaled_x = ((double)MANDEL_SCALING_X/GRID_WIDTH * x_pixel - MANDEL_SCALING_X_OFFSET)*MANDEL_UNZOOM;
+            double scaled_y = ((double)MANDEL_SCALING_Y/GRID_HEIGHT * y_pixel - MANDEL_SCALING_Y_OFFSET)*MANDEL_UNZOOM;
 
             double complex c = scaled_x + (scaled_y*I);
             double complex z = 0;
