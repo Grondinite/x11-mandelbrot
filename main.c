@@ -203,5 +203,6 @@ int main() {
 
     XCloseDisplay(display);
     free(grid);
+    free(grid_px);
     return 0;
 }
