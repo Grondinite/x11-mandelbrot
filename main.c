@@ -20,30 +20,19 @@
 #define MANDEL_SCALING_X_OFFSET 2.3f
 #define MANDEL_SCALING_Y 2.0f
 #define MANDEL_SCALING_Y_OFFSET 1.0f
-#define MANDEL_MAX_DEPTH 70
+#define MANDEL_MAX_DEPTH 75
 #define MANDEL_DIMENSIONS 2
-
 #define MANDEL_UNZOOM 1.0f
 
 #define ARROW_CMD_SPEED 8
 
 typedef uint32_t RGBA32;
-RGBA32 * grid;
-RGBA32 * grid_px;
 
-void initialize_pix_buff(){
-    size_t grid_px_size_bytes = PIX_BUF_SIZE * sizeof(RGBA32);
-    grid_px = malloc(grid_px_size_bytes);
-    for (int i = 0; i < PIX_BUF_SIZE; i++){
-        grid_px[i] = 0;
-    }
-}
-
-void initialize_grid(){
-    size_t grid_px_size_bytes = GRID_SIZE * sizeof(RGBA32);
-    grid = malloc(grid_px_size_bytes);
-    for (int i = 0; i < GRID_SIZE; i++){
-        grid[i] = 0;
+void initialize_memory(RGBA32 ** element, unsigned int size) {
+    size_t grid_px_size_bytes = size * sizeof(RGBA32);
+    *element = malloc(grid_px_size_bytes);
+    for (int i = 0; i < size; i++){
+        (*element)[i] = 0;
     }
 }
 
@@ -56,11 +45,11 @@ void initialize_grid(){
 }
 
 
-void insert_grid(int x, int y, int i, int max_iter) {
+void insert_grid(RGBA32 ** grid, int x, int y, int i, int max_iter) {
     double scaled_color = ((double)i/(double)max_iter);
 
     if (i == max_iter) {
-        grid[y * GRID_WIDTH + x] = 0;
+        (*grid)[y * GRID_WIDTH + x] = 0;
         return;
     }
 
@@ -71,14 +60,14 @@ void insert_grid(int x, int y, int i, int max_iter) {
         other = normalized_color - 0.25f;
     }
 
-    grid[y * GRID_WIDTH + x] = make_rgba32(normalized_color, other, other);
+    (*grid)[y * GRID_WIDTH + x] = make_rgba32(normalized_color, other, other);
 }
 
-void draw_pixel(int x, int y, RGBA32 pixel) {
-    grid_px[y * PIX_BUF_WIDTH + x] = pixel;
+void draw_pixel(RGBA32 ** grid_px, int x, int y, RGBA32 pixel) {
+    (*grid_px)[y * PIX_BUF_WIDTH + x] = pixel;
 }
 
-void generate_mandelbrot() {
+void generate_mandelbrot(RGBA32 ** grid) {
     for (int y_pixel = 0; y_pixel < GRID_HEIGHT; y_pixel++){
         for (int x_pixel = 0; x_pixel < GRID_WIDTH; x_pixel++) {
 
@@ -96,31 +85,34 @@ void generate_mandelbrot() {
                 if (isinf(creal(z))) break;
             }
 
-
-            insert_grid(x_pixel, y_pixel, i, max_iter);
+            insert_grid(grid, x_pixel, y_pixel, i, max_iter);
         }
     }
 }
 
-RGBA32 get_pix_from_grid(int x, int y) {
-    return grid[y * GRID_WIDTH + x];
+RGBA32 get_pix_from_grid(RGBA32 ** grid, int x, int y) {
+    return (*grid)[y * GRID_WIDTH + x];
 }
 
-void render_mandelbrot(int move_x, int move_y) {
+void render_mandelbrot(RGBA32 ** grid_px, RGBA32 ** grid, int move_x, int move_y) {
     for (int y_pixel = 0; y_pixel < PIX_BUF_HEIGHT; y_pixel++) {
         for (int x_pixel = 0; x_pixel < PIX_BUF_WIDTH; x_pixel++) {
             int relative_pixel_x = x_pixel + move_x;
             int relative_pixel_y = y_pixel + move_y;
             if (relative_pixel_x < GRID_WIDTH  && relative_pixel_y < GRID_HEIGHT) {
-                draw_pixel(x_pixel, y_pixel, get_pix_from_grid(relative_pixel_x, relative_pixel_y));
+                draw_pixel(grid_px, x_pixel, y_pixel, get_pix_from_grid(grid, relative_pixel_x, relative_pixel_y));
             }
         }
     }
 }
 
 int main() {
-    initialize_grid();
-    initialize_pix_buff();
+
+    RGBA32 * grid;
+    RGBA32 * grid_px;
+
+    initialize_memory(&grid, GRID_SIZE);
+    initialize_memory(&grid_px, PIX_BUF_SIZE);
 
     Display *display = XOpenDisplay(NULL);
     if (display == NULL) {
@@ -135,7 +127,6 @@ int main() {
         fprintf(stderr, "XDBE is not supported!!!1\n");
         exit(1);
     }
-
 
     Window window = XCreateSimpleWindow(
             display, XDefaultRootWindow(display),
@@ -162,12 +153,10 @@ int main() {
     XSelectInput(display, window, KeyPressMask);
     XMapWindow(display, window);
 
-
     int move_x = 0;
     int move_y = 500;
 
-    generate_mandelbrot();
-
+    generate_mandelbrot(&grid);
 
     int quit = 0;
     while (!quit) {
@@ -179,8 +168,8 @@ int main() {
         swap_info.swap_window = window;
         swap_info.swap_action = 0;
         XdbeSwapBuffers(display, &swap_info, 1);
-        render_mandelbrot(move_x, move_y);
-        //move_x += 3;
+        render_mandelbrot(&grid_px, &grid, move_x, move_y);
+
         while(XPending(display) > 0) {
             XEvent event = {};
             XNextEvent(display, &event);
